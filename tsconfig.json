@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "outDir": "dist",
+        "target": "ES6",
+        "module": "NodeNext",
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "baseUrl": ".",
+        "moduleResolution": "NodeNext",
+        "resolveJsonModule": true,
+        "lib": [
+            "ES6",
+            "ES2021"
+        ]
+    }
+}

@@ -4,7 +4,8 @@
  * Module dependencies.
  */
 
-var app = require('../app');
+import app from "../app";
+
 var debug = require('debug')('deamon-ddnet:server');
 var http = require('http');
 var config = require('../config/default.json');
@@ -15,7 +16,6 @@ var config = require('../config/default.json');
 var port = process.env.PORT || config.port
 var host = process.env.HOST || config.host
 app.set('port', port);
-
 /**
  * Create HTTP server.
  */

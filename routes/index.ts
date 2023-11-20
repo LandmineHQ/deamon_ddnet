@@ -1,26 +1,12 @@
 import { readFileSync, writeFileSync } from "fs"
 import appInfo from "../package.json"
-import { join } from "path"
 import express from "express"
 import { error } from "console"
 import axios from "axios"
-import { it } from "node:test"
-let debug = require('debug')('deamon-ddnet:server')
+import { MAPPERS, SKINS, TEEDATA } from "../src/cache/Config"
+const debug = require('debug')('deamon-ddnet:server')
 
-let router = express.Router()
-const MAPPERS = {
-  FILE_PATH: join(__dirname, "mappers.json")
-}
-const SKINS = {
-  FILE_PATH: join(__dirname, 'skins.json')
-}
-
-const TEEDATA = {
-  FILE_PATH: {
-    SKIN: join(__dirname, "teedata_skins.json"),
-    AUTHOR: join(__dirname, "teedata_authors.json")
-  }
-}
+const router = express.Router()
 
 router.get('/version', (req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*")
@@ -117,7 +103,9 @@ router.get('/freshSkins', async (req, res, next) => {
   res.redirect('/skins')
 })
 
-module.exports = router
+export default router
+
+// =================================================================
 
 /**
  * 将html字符串编译为mappers.json
@@ -179,8 +167,8 @@ function compilerHTML2Mappers(html: string): string {
  * @param name - 皮肤名
  * @returns 皮肤路径
  */
-function getCacheTeeData(name: string): TeeData.SKIN | null {
-  let teedata: TeeData.SKIN[] = [];
+function getCacheTeeData(name: string): TeeData_SKIN | null {
+  let teedata: TeeData_SKIN[] = [];
   try {
     teedata = JSON.parse(readFileSync(TEEDATA.FILE_PATH.SKIN, { encoding: "utf8" }))
   } catch (error) {
@@ -201,9 +189,9 @@ function getCacheTeeData(name: string): TeeData.SKIN | null {
  * @param name - 皮肤名，忽略大小写
  * @returns 
  */
-function addCacheTeeData(item: TeeData.SKIN): TeeData.SKIN {
+function addCacheTeeData(item: TeeData_SKIN): TeeData_SKIN {
   // 获取缓存文件
-  let teedata: TeeData.SKIN[];
+  let teedata: TeeData_SKIN[];
   try {
     teedata = JSON.parse(readFileSync(TEEDATA.FILE_PATH.SKIN, { encoding: "utf8" }))
   } catch (error) {

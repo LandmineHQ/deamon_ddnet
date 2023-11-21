@@ -1,4 +1,4 @@
-interface MappersData {
+type MappersData {
     total: number
     authors: {
         [name: string]: {
@@ -140,3 +140,14 @@ type TeeData_Author = {
         "templates": number
     }
 }
+
+type Cache = {
+    mappers: MappersData
+    skins: SkinsData
+    teedata: {
+        skins: TeeData_SKIN[]
+        author: TeeData_Author[]
+    }
+}
+
+export { MappersData, SkinsData, TeeData_Author, TeeData_SKIN, Cache }

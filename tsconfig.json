@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
         "resolveJsonModule": true,
-        "esModuleInterop": true,
         "allowJs": true,
         "module": "NodeNext",
+        "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "target": "ES2020",
         "moduleResolution": "NodeNext",

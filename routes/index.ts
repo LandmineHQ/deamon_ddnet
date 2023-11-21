@@ -4,6 +4,8 @@ import express from "express"
 import { error } from "console"
 import axios from "axios"
 import { MAPPERS, SKINS, TEEDATA } from "../src/cache/Config"
+import useCache from "../src/cache/useCache"
+import { MappersData, TeeData_SKIN } from "../src/cache/type"
 const debug = require('debug')('deamon-ddnet:server')
 
 const router = express.Router()
@@ -11,6 +13,13 @@ const router = express.Router()
 router.get('/version', (req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*")
   res.send(`version ${appInfo.version}`)
+
+  // process get end
+  if (req.query.exit !== undefined) {
+    import('exit-hook').then(res => {
+      res.gracefulExit()
+    })
+  }
 })
 
 router.get('/teedata/skinSource', async (req, res, next) => {
@@ -18,11 +27,11 @@ router.get('/teedata/skinSource', async (req, res, next) => {
   if (typeof req.query.name !== "string") return
   const name = req.query.name
   let item = getCacheTeeData(name)
-  if (item !== null) {
+  if (item) {
     res.send(item.file_path)
     return
   }
-
+  console.log("no cache file found, now fetching teedata", name)
   const url = new URL("https://teedata.net/api/skin/read/name/")
   url.pathname += name
   await axios.get(url.toString()).then(response => {
@@ -60,13 +69,11 @@ router.get('/teedata/author', async (req, res, next) => {
 
 router.get('/mappers', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  let mapperHTML
-  try {
-    mapperHTML = readFileSync(MAPPERS.FILE_PATH, { encoding: 'utf8' })
-  } catch (error) {
-    res.redirect('/freshMappers')
-  }
-  res.sendFile(MAPPERS.FILE_PATH)
+  let mappers
+  // read cache
+  mappers = useCache.cache.mappers
+  if (!mappers) res.redirect('/freshMappers')
+  res.send(mappers)
 })
 
 router.get('/freshMappers', async (req, res, next) => {
@@ -74,7 +81,7 @@ router.get('/freshMappers', async (req, res, next) => {
   await fetch("https://ddnet.org/mappers")
     .then(async (response) => {
       await response.text().then((responseText) => {
-        writeFileSync(MAPPERS.FILE_PATH, compilerHTML2Mappers(responseText), { encoding: 'utf8' })
+        useCache.cache.mappers = compilerHTML2Mappers(responseText)
       })
     })
     .catch(err => console.log(error))
@@ -84,22 +91,20 @@ router.get('/freshMappers', async (req, res, next) => {
 // 使用此函数缓存skins且完成跨域
 router.get('/skins', async (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  let skins
-  try {
-    skins = readFileSync(SKINS.FILE_PATH, { encoding: 'utf8' })
-  } catch (error) {
-    res.redirect('/freshSkins')
+  let skins = useCache.cache.skins
+  if (skins) {
+    res.send(skins)
+    return
   }
-  res.sendFile(SKINS.FILE_PATH)
+  res.redirect('/freshSkins')
 })
 
 router.get('/freshSkins', async (req, res, next) => {
   await fetch("https://ddnet.org/skins/skin/skins.json").then(async (response) => {
-    await response.json().then((responseJSON) => {
-      writeFileSync(SKINS.FILE_PATH, JSON.stringify(responseJSON), { encoding: 'utf8' })
+    await response.text().then((responseJSON) => {
+      useCache.cache.skins = JSON.parse(responseJSON)
     })
-  })
-    .catch(err => console.log(err))
+  }).catch(err => console.log(err))
   res.redirect('/skins')
 })
 
@@ -112,7 +117,7 @@ export default router
  * @param html 
  * @returns 
  */
-function compilerHTML2Mappers(html: string): string {
+function compilerHTML2Mappers(html: string): MappersData {
   // 创建一个空的对象文件
   const obj: MappersData = {
     total: 0,
@@ -130,7 +135,7 @@ function compilerHTML2Mappers(html: string): string {
   // 使用正则表达式，匹配html字符串中的作者和地图信息
   let authorsReg = /<a href="\/mappers\/[\s\S]+?<\/p>/g
   let authorsMatch = html.match(authorsReg)
-  if (!authorsMatch) return JSON.stringify(obj)
+  if (!authorsMatch) return obj
   for (let authorElement of authorsMatch) {
     // 匹配信息的<p>元素
     let elementRegExecArray =
@@ -159,7 +164,7 @@ function compilerHTML2Mappers(html: string): string {
   }
 
   // 返回对象文件
-  return JSON.stringify(obj)
+  return obj
 }
 
 /**
@@ -168,13 +173,9 @@ function compilerHTML2Mappers(html: string): string {
  * @returns 皮肤路径
  */
 function getCacheTeeData(name: string): TeeData_SKIN | null {
-  let teedata: TeeData_SKIN[] = [];
-  try {
-    teedata = JSON.parse(readFileSync(TEEDATA.FILE_PATH.SKIN, { encoding: "utf8" }))
-  } catch (error) {
-    console.log("WARNNING: has none teedata cache.")
-  }
-  for (let item of teedata) {
+  let skins = useCache.cache.teedata.skins
+  if (!skins) return null
+  for (let item of skins) {
     if (item.name !== name) continue
     // 命中缓存
     return item
@@ -191,21 +192,8 @@ function getCacheTeeData(name: string): TeeData_SKIN | null {
  */
 function addCacheTeeData(item: TeeData_SKIN): TeeData_SKIN {
   // 获取缓存文件
-  let teedata: TeeData_SKIN[];
-  try {
-    teedata = JSON.parse(readFileSync(TEEDATA.FILE_PATH.SKIN, { encoding: "utf8" }))
-  } catch (error) {
-    console.log("has none cache of teedata", error)
-    teedata = []
-  }
+  let skins = useCache.cache.teedata.skins
   // 将item添加进缓存
-  teedata.unshift(item)
-
-  // 保存缓存
-  try {
-    writeFileSync(TEEDATA.FILE_PATH.SKIN, JSON.stringify(teedata), { encoding: "utf8" })
-  } catch (error) {
-    console.log(error);
-  }
+  skins.unshift(item)
   return item
 }

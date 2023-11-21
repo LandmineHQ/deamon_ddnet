@@ -1,93 +1,47 @@
-#!/usr/bin/env node
+import app from "../app"
+import defaultConfig from '../config/default.json'
+import http from "http"
 
-/**
- * Module dependencies.
- */
+let port = process.env.PORT || defaultConfig.port
+let host = process.env.HOST || defaultConfig.host
+app.set('port', port)
 
-import app from "../app";
+let server = http.createServer(app)
 
-var debug = require('debug')('deamon-ddnet:server');
-var http = require('http');
-var config = require('../config/default.json');
+server.listen(port)
+server.on('error', onError)
+server.on('listening', onListening)
 
-/**
- * Get port from environment and store in Express.
- */
-var port = process.env.PORT || config.port
-var host = process.env.HOST || config.host
-app.set('port', port);
-/**
- * Create HTTP server.
- */
-
-var server = http.createServer(app);
-
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port, host)
-server.on('error', onError);
-server.on('listening', onListening);
-
-/**
- * Normalize a port into a number, string, or false.
- */
-
-function normalizePort(val) {
-  var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
-}
-
-/**
- * Event listener for HTTP server "error" event.
- */
-
-function onError(error) {
+function onError(error: { syscall: string, code: any }) {
   if (error.syscall !== 'listen') {
-    throw error;
+    throw error
   }
 
   var bind = typeof port === 'string'
     ? 'Pipe ' + port
-    : 'Port ' + port;
+    : 'Port ' + port
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
+      console.error(bind + ' requires elevated privileges')
+      process.exit(1)
+      break
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
-      process.exit(1);
-      break;
+      console.error(bind + ' is already in use')
+      process.exit(1)
+      break
     default:
-      throw error;
+      throw error
   }
 }
 
-/**
- * Event listener for HTTP server "listening" event.
- */
-
 function onListening() {
-  let addr = server.address();
-
-  console.log(("Listening on " + `${addr.address}:${addr.port}`));
+  let addr = server.address()
+  // @ts-ignore
+  console.log(("Listening on " + `${addr.address}:${addr.port}`))
   // var bind = typeof addr === 'string'
   //   ? 'pipe ' + addr
-  //   : 'port ' + addr.port;
-  // debug('Listening on ' + bind);
+  //   : 'port ' + addr.port
+  // debug('Listening on ' + bind)
 }
